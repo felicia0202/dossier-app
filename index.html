@@ -163,11 +163,14 @@ table.ledger td.num,table.ledger th.num{text-align:right;}
   </div>
 </div>
 
-<script src="config.js"></script>
+<script>
+window.RENTCAST_API_KEY = "RENTCAST_KEY_HERE";
+window.HUD_API_TOKEN = "HUD_TOKEN_HERE";
+</script>
 <script>
 (function(){
-  function getRentcastKey(){ return (window.RENTCAST_API_KEY||"f110d18138ab4dba81459f9d633165e8").trim(); }
-  function getHudToken()   { return (window.HUD_API_TOKEN||"eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJhdWQiOiI2IiwianRpIjoiMGZlMjZkYjAxOTFlYzRkYmU4YzMxOWI5NGI0NTRmNDM0NzQ3MjMzMjQ0MjE5MWYzZDYwZTY5MmMyMjY4OTlmYmU2NGZlZGFkZDEwYmJhNWUiLCJpYXQiOjE3ODQ1Njg0MzAuNjE4MDI3LCJuYmYiOjE3ODQ1Njg0MzAuNjE4MDI5LCJleHAiOjIxMDAxODc2MzAuNjExOTUyLCJzdWIiOiIxMzQ4NzgiLCJzY29wZXMiOltdfQ.f6fjpCaQiClArT36pdub6eJeHHj7wOZFZRafGRvjByC_Q2fahSpAohv5ddLS8sIDd_EOY-6rxd14SQmRby30cQ").trim(); }
+  function getRentcastKey(){ return (window.RENTCAST_API_KEY||"").trim(); }
+  function getHudToken()   { return (window.HUD_API_TOKEN||"").trim(); }
 
   const addressInput = document.getElementById('addressInput');
   const searchBtn    = document.getElementById('searchBtn');
@@ -223,12 +226,27 @@ table.ledger td.num,table.ledger th.num{text-align:right;}
     return res.ok?res.json():null;
   }
 
-  // ── Census Bureau ─────────────────────────────────────────────────────
+  // ── Census Bureau (JSONP — required because Census API blocks CORS fetch) ──
+  function jsonp(url){
+    return new Promise((resolve,reject)=>{
+      const cb="census_cb_"+Date.now()+"_"+Math.floor(Math.random()*10000);
+      window[cb]=function(data){
+        delete window[cb];
+        document.head.removeChild(script);
+        resolve(data);
+      };
+      const script=document.createElement('script');
+      script.src=url+"&format=jsonp&callback="+cb;
+      script.onerror=()=>{delete window[cb];document.head.removeChild(script);reject(new Error('JSONP failed'));};
+      document.head.appendChild(script);
+    });
+  }
+
   async function fetchCensus(address,lat,lon){
     try{
       let geo=null;
 
-      // Strategy 1: structured address (benchmark=4&vintage=4 confirmed working)
+      // Strategy 1: structured address via JSONP
       const parts=address.match(/^(.+?),\s*(.+?),\s*([A-Z]{2})\s*(\d{5})?$/i);
       if(parts){
         const[,street,city,state,zip]=parts;
@@ -237,23 +255,31 @@ table.ledger td.num,table.ledger th.num{text-align:right;}
           "&city="+encodeURIComponent(city.trim())+
           "&state="+encodeURIComponent(state.trim())+
           (zip?"&zip="+encodeURIComponent(zip.trim()):"")+
-          "&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts&format=json";
-        const r=await fetch(url);
-        if(r.ok){const d=await r.json();geo=d?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];}
+          "&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts";
+        try{
+          const d=await jsonp(url);
+          geo=d?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];
+        }catch(e){}
       }
 
-      // Strategy 2: one-line address
+      // Strategy 2: one-line address via JSONP
       if(!geo){
-        const r2=await fetch("https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address="+
-          encodeURIComponent(address)+"&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts&format=json");
-        if(r2.ok){const d2=await r2.json();geo=d2?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];}
+        const url2="https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address="+
+          encodeURIComponent(address)+"&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts";
+        try{
+          const d2=await jsonp(url2);
+          geo=d2?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];
+        }catch(e){}
       }
 
-      // Strategy 3: lat/lon coordinates from RentCast
+      // Strategy 3: lat/lon coordinates via JSONP
       if(!geo&&lat&&lon){
-        const r3=await fetch("https://geocoding.geo.census.gov/geocoder/geographies/coordinates?"+
-          "x="+lon+"&y="+lat+"&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts&format=json");
-        if(r3.ok){const d3=await r3.json();geo=d3?.result?.geographies?.["Census Tracts"]?.[0];}
+        const url3="https://geocoding.geo.census.gov/geocoder/geographies/coordinates?"+
+          "x="+lon+"&y="+lat+"&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts";
+        try{
+          const d3=await jsonp(url3);
+          geo=d3?.result?.geographies?.["Census Tracts"]?.[0];
+        }catch(e){}
       }
 
       if(!geo)return null;
