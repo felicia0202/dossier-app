@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Subject Property Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#1C2620;--paper:#F7F4ED;--paper-raised:#FCFAF4;
+  --brass:#8A7654;--deed-green:#3D5A47;--rust:#B5482E;
+  --rule:#D8D2C2;--rule-strong:#B7AE96;--muted:#6B6457;
+  --hud-blue:#1A3A5C;--census-teal:#2A5F5F;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;background:var(--paper);color:var(--ink);font-family:'IBM Plex Sans',sans-serif;-webkit-font-smoothing:antialiased;}
+.app{max-width:960px;margin:0 auto;padding:48px 28px 120px;}
+@media(max-width:600px){.app{padding:28px 16px 80px;}}
+
+/* Masthead */
+.masthead{display:flex;align-items:baseline;justify-content:space-between;border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:6px;gap:16px;flex-wrap:wrap;}
+.masthead-title{font-family:'Fraunces',serif;font-weight:600;font-size:28px;letter-spacing:-0.01em;}
+.masthead-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);}
+.masthead-meta{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right;line-height:1.6;}
+
+/* Search */
+.search-block{margin:36px 0 8px;}
+.search-label{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--brass);margin-bottom:8px;display:block;}
+.search-row{display:flex;gap:10px;flex-wrap:wrap;}
+.search-input{flex:1 1 380px;background:var(--paper-raised);border:1.5px solid var(--ink);padding:14px 16px;font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--ink);outline:none;}
+.search-input::placeholder{color:#A39C8B;}
+.search-input:focus{border-color:var(--deed-green);box-shadow:0 0 0 3px rgba(61,90,71,0.12);}
+.search-btn{background:var(--ink);color:var(--paper);border:1.5px solid var(--ink);padding:14px 26px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:13px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;transition:background 0.15s;}
+.search-btn:hover{background:var(--deed-green);border-color:var(--deed-green);}
+.search-btn:disabled{background:var(--rule-strong);border-color:var(--rule-strong);cursor:not-allowed;}
+.search-hint{font-size:12px;color:var(--muted);margin-top:8px;}
+
+/* Source selector */
+.source-selector{margin-top:20px;border:1px solid var(--rule-strong);padding:16px 18px;background:var(--paper-raised);}
+.source-selector-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;display:block;}
+.source-options{display:flex;gap:0;flex-wrap:wrap;}
+.source-option{flex:1 1 180px;display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border:1px solid var(--rule);background:var(--paper);cursor:pointer;transition:border-color 0.15s,background 0.15s;}
+.source-option:not(:first-child){border-left:none;}
+.source-option.active{border-color:var(--deed-green);background:rgba(61,90,71,0.05);}
+.source-option input[type=checkbox]{margin-top:2px;accent-color:var(--deed-green);flex-shrink:0;}
+.source-name{font-weight:600;font-size:13px;line-height:1.3;}
+.source-desc{font-size:11px;color:var(--muted);margin-top:2px;line-height:1.4;}
+.source-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:2px 6px;margin-top:4px;}
+.badge-free{background:rgba(61,90,71,0.12);color:var(--deed-green);}
+.badge-key{background:rgba(138,118,84,0.15);color:var(--brass);}
+.badge-manual{background:rgba(42,95,95,0.12);color:var(--census-teal);}
+.key-missing{color:var(--rust);font-size:10px;font-family:'IBM Plex Mono',monospace;margin-top:4px;}
+
+/* Manual entry panels */
+.manual-panel{margin-top:16px;border:1px solid var(--rule-strong);background:var(--paper-raised);display:none;}
+.manual-panel.visible{display:block;}
+.manual-panel-header{background:var(--ink);color:var(--paper);padding:10px 16px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;display:flex;align-items:center;gap:10px;}
+.manual-panel-header .pill{font-size:9px;padding:2px 7px;letter-spacing:0.04em;}
+.pill-census-inv{background:rgba(42,95,95,0.4);color:#9ECECE;}
+.pill-hud-inv{background:rgba(26,58,92,0.4);color:#7AAAD0;}
+.manual-panel-body{padding:16px 18px;}
+.manual-hint{font-size:11px;color:var(--muted);margin-bottom:14px;font-family:'IBM Plex Mono',monospace;line-height:1.6;}
+.manual-hint a{color:var(--deed-green);}
+.field-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px 20px;}
+.field-group{display:flex;flex-direction:column;gap:5px;}
+.field-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);}
+.field-input{background:var(--paper);border:1px solid var(--rule-strong);padding:8px 10px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink);outline:none;width:100%;}
+.field-input:focus{border-color:var(--deed-green);box-shadow:0 0 0 2px rgba(61,90,71,0.1);}
+.field-input::placeholder{color:#C0B8A8;}
+.section-divider{grid-column:1/-1;border-top:1px solid var(--rule);padding-top:12px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.08em;text-transform:uppercase;color:var(--brass);margin-top:4px;}
+
+/* States */
+.state-block{margin-top:64px;text-align:center;color:var(--muted);}
+.state-block .glyph{font-family:'Fraunces',serif;font-size:15px;font-style:italic;color:var(--brass);margin-bottom:10px;}
+.state-block p{font-size:14px;max-width:420px;margin:0 auto;line-height:1.6;}
+.error-block{margin-top:36px;border:1.5px solid var(--rust);background:rgba(181,72,46,0.06);padding:16px 18px;font-size:13px;color:var(--rust);font-family:'IBM Plex Mono',monospace;line-height:1.6;}
+.spinner{width:22px;height:22px;border:2.5px solid var(--rule);border-top-color:var(--deed-green);border-radius:50%;margin:0 auto 16px;animation:spin 0.8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Dossier */
+.dossier{margin-top:48px;position:relative;animation:rise 0.4s ease both;}
+@keyframes rise{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.stamp{position:absolute;top:-10px;right:0;transform:rotate(6deg);border:2px solid var(--rust);color:var(--rust);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:7px 10px;text-align:center;line-height:1.5;opacity:0.85;background:rgba(181,72,46,0.03);}
+.stamp strong{display:block;font-size:11px;}
+@media(max-width:600px){.stamp{position:static;transform:rotate(0);display:inline-block;margin-bottom:18px;}}
+.dossier-head{border-bottom:1px solid var(--ink);padding-bottom:16px;margin-bottom:28px;}
+.dossier-eyebrow{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--brass);margin-bottom:6px;}
+.dossier-address{font-family:'Fraunces',serif;font-weight:600;font-size:26px;line-height:1.25;}
+.dossier-subline{font-size:13px;color:var(--muted);margin-top:6px;}
+.section{margin-bottom:36px;}
+.section-header{display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--rule-strong);padding-bottom:8px;margin-bottom:16px;}
+.section-title{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:var(--ink);}
+.section-pill{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:2px 7px;}
+.pill-rentcast{background:rgba(61,90,71,0.1);color:var(--deed-green);}
+.pill-census{background:rgba(42,95,95,0.1);color:var(--census-teal);}
+.pill-hud{background:rgba(26,58,92,0.1);color:var(--hud-blue);}
+.section-count{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;}
+.kv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:18px 24px;}
+.kv{border-left:2px solid var(--rule);padding-left:12px;}
+.kv-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px;}
+.kv-value{font-size:15px;font-weight:500;line-height:1.3;}
+.kv-value.empty{color:#B7AE96;font-weight:400;font-style:italic;}
+table.ledger{width:100%;border-collapse:collapse;font-size:13px;}
+table.ledger th{text-align:left;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);font-weight:500;padding:0 10px 8px 0;border-bottom:1px solid var(--ink);}
+table.ledger td{padding:9px 10px 9px 0;border-bottom:1px solid var(--rule);font-family:'IBM Plex Mono',monospace;}
+table.ledger tr:last-child td{border-bottom:none;}
+table.ledger td.num,table.ledger th.num{text-align:right;}
+.comp-card{border:1px solid var(--rule-strong);background:var(--paper-raised);padding:14px 16px;margin-bottom:10px;}
+.comp-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.comp-addr{font-weight:600;font-size:14px;}
+.comp-price{font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--deed-green);font-weight:500;}
+.comp-detail{font-size:12px;color:var(--muted);margin-top:6px;font-family:'IBM Plex Mono',monospace;}
+.comp-corr{display:inline-block;margin-top:8px;font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;text-transform:uppercase;color:var(--brass);}
+.source-info-bar{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:7px 12px;margin-bottom:16px;border-left:3px solid;}
+.source-info-bar.census{color:var(--census-teal);background:rgba(42,95,95,0.07);border-color:var(--census-teal);}
+.source-info-bar.hud{color:var(--hud-blue);background:rgba(26,58,92,0.07);border-color:var(--hud-blue);}
+.hud-rent-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:var(--rule);border:1px solid var(--rule);}
+.hud-rent-cell{background:var(--paper-raised);padding:10px 12px;text-align:center;}
+.hud-rent-cell .br{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
+.hud-rent-cell .amt{font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:500;color:var(--hud-blue);}
+.owner-name{font-family:'Fraunces',serif;font-size:17px;font-weight:500;}
+.owner-meta{font-size:13px;color:var(--muted);margin-top:4px;}
+.dossier-actions{display:flex;gap:12px;margin-top:40px;padding-top:20px;border-top:1px solid var(--rule);flex-wrap:wrap;}
+.action-btn{background:transparent;border:1.5px solid var(--ink);color:var(--ink);padding:10px 18px;font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.03em;text-transform:uppercase;cursor:pointer;}
+.action-btn:hover{background:var(--ink);color:var(--paper);}
+.source-note{margin-top:28px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;line-height:1.8;}
+@media print{
+  body{background:#fff;}
+  .search-block,.dossier-actions,.source-selector,.manual-panels{display:none!important;}
+  .app{padding:0;max-width:100%;}
+  .stamp{position:static;transform:rotate(0);display:inline-block;margin-bottom:14px;}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="masthead">
+    <div>
+      <div class="masthead-title">Subject Property Dossier</div>
+      <div class="masthead-sub">Desk Package &middot; Administrative Data Intake</div>
+    </div>
+    <div class="masthead-meta">Compiled from public record &amp; MLS-adjacent sources<br>Not an opinion of value</div>
+  </div>
+
+  <div class="search-block">
+    <label class="search-label" for="addressInput">Subject Property Address</label>
+    <div class="search-row">
+      <input id="addressInput" class="search-input" type="text" placeholder="280 Independence Dr, Jonesboro, GA 30238" autocomplete="off">
+      <button id="searchBtn" class="search-btn">Pull Record</button>
+    </div>
+    <div class="search-hint">Enter a full street address including city, state, and ZIP.</div>
+
+    <!-- Source selector -->
+    <div class="source-selector">
+      <span class="source-selector-label">Data Sources &mdash; select which to include</span>
+      <div class="source-options">
+        <label class="source-option active" id="opt-rentcast">
+          <input type="checkbox" id="chk-rentcast" checked>
+          <div>
+            <div class="source-name">RentCast</div>
+            <div class="source-desc">Property record, tax &amp; sale history, comparables</div>
+            <span class="source-badge badge-key">API key required</span>
+            <div class="key-missing" id="rentcast-key-warning" style="display:none">⚠ No key in config.js</div>
+          </div>
+        </label>
+        <label class="source-option active" id="opt-census">
+          <input type="checkbox" id="chk-census" checked>
+          <div>
+            <div class="source-name">Census Bureau</div>
+            <div class="source-desc">Neighborhood demographics &amp; housing stats</div>
+            <span class="source-badge badge-manual">Manual entry</span>
+          </div>
+        </label>
+        <label class="source-option active" id="opt-hud">
+          <input type="checkbox" id="chk-hud" checked>
+          <div>
+            <div class="source-name">HUD</div>
+            <div class="source-desc">Fair Market Rents by bedroom count</div>
+            <span class="source-badge badge-manual">Manual entry</span>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual entry panels -->
+  <div class="manual-panels">
+
+    <!-- Census panel -->
+    <div class="manual-panel" id="census-panel">
+      <div class="manual-panel-header">
+        Census Bureau &mdash; Neighborhood Data
+        <span class="section-pill pill-census-inv">Manual Entry</span>
+      </div>
+      <div class="manual-panel-body">
+        <div class="manual-hint">
+          The app will attempt to auto-fill these fields when you click Pull Record. If they remain empty (due to browser restrictions on local files), look up data at <a href="https://censusreporter.org" target="_blank">censusreporter.org</a> and enter manually.<br>
+          Leave fields blank if not available.
+        </div>
+        <div class="field-grid">
+          <div class="field-group">
+            <label class="field-label">Census Tract</label>
+            <input class="field-input" id="c-tract" placeholder="e.g. 0501.02">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Tract Name / Area</label>
+            <input class="field-input" id="c-tractname" placeholder="e.g. Clayton County, GA">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Total Population</label>
+            <input class="field-input" id="c-population" placeholder="e.g. 4820" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Total Housing Units</label>
+            <input class="field-input" id="c-units" placeholder="e.g. 1930" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Median Household Income</label>
+            <input class="field-input" id="c-income" placeholder="e.g. 54200" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Median Home Value</label>
+            <input class="field-input" id="c-homevalue" placeholder="e.g. 182000" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">% Owner-Occupied</label>
+            <input class="field-input" id="c-owner" placeholder="e.g. 62.4" type="number" step="0.1">
+          </div>
+          <div class="field-group">
+            <label class="field-label">% Renter-Occupied</label>
+            <input class="field-input" id="c-renter" placeholder="e.g. 31.2" type="number" step="0.1">
+          </div>
+          <div class="field-group">
+            <label class="field-label">% Vacant Units</label>
+            <input class="field-input" id="c-vacant" placeholder="e.g. 6.4" type="number" step="0.1">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD panel -->
+    <div class="manual-panel" id="hud-panel">
+      <div class="manual-panel-header">
+        HUD &mdash; Fair Market Rents
+        <span class="section-pill pill-hud-inv">Manual Entry</span>
+      </div>
+      <div class="manual-panel-body">
+        <div class="manual-hint">
+          The app will attempt to auto-fill these fields when you click Pull Record (requires HUD token in config.js). If empty, look up FMRs at <a href="https://www.huduser.gov/portal/datasets/fmr.html" target="_blank">huduser.gov</a> and enter manually.<br>
+          Leave fields blank if not available.
+        </div>
+        <div class="field-grid">
+          <div class="field-group">
+            <label class="field-label">Area / Metro Name</label>
+            <input class="field-input" id="h-area" placeholder="e.g. Atlanta-Sandy Springs, GA">
+          </div>
+          <div class="field-group">
+            <label class="field-label">Fiscal Year</label>
+            <input class="field-input" id="h-year" placeholder="e.g. 2025">
+          </div>
+          <div class="section-divider">Fair Market Rents by Bedroom</div>
+          <div class="field-group">
+            <label class="field-label">Studio / Efficiency</label>
+            <input class="field-input" id="h-studio" placeholder="e.g. 1050" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">1 Bedroom</label>
+            <input class="field-input" id="h-1br" placeholder="e.g. 1180" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">2 Bedroom</label>
+            <input class="field-input" id="h-2br" placeholder="e.g. 1380" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">3 Bedroom</label>
+            <input class="field-input" id="h-3br" placeholder="e.g. 1750" type="number">
+          </div>
+          <div class="field-group">
+            <label class="field-label">4 Bedroom</label>
+            <input class="field-input" id="h-4br" placeholder="e.g. 1950" type="number">
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /manual-panels -->
+
+  <div id="resultArea">
+    <div class="state-block">
+      <div class="glyph">&mdash;</div>
+      <p>Select your data sources, fill in any manual fields, then enter a subject property address and click Pull Record.</p>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function(){
+  function getRentcastKey(){ return (window.RENTCAST_API_KEY||"").trim(); }
+
+  const addressInput = document.getElementById('addressInput');
+  const searchBtn    = document.getElementById('searchBtn');
+  const resultArea   = document.getElementById('resultArea');
+  const chkRentcast  = document.getElementById('chk-rentcast');
+  const chkCensus    = document.getElementById('chk-census');
+  const chkHud       = document.getElementById('chk-hud');
+  const censusPanel  = document.getElementById('census-panel');
+  const hudPanel     = document.getElementById('hud-panel');
+
+  // Checkbox visual sync + panel visibility
+  ['rentcast','census','hud'].forEach(id=>{
+    const chk=document.getElementById('chk-'+id);
+    const opt=document.getElementById('opt-'+id);
+    chk.addEventListener('change',()=>{
+      opt.classList.toggle('active',chk.checked);
+      updatePanels();
+    });
+  });
+
+  function updatePanels(){
+    censusPanel.classList.toggle('visible', chkCensus.checked);
+    hudPanel.classList.toggle('visible', chkHud.checked);
+    document.getElementById('rentcast-key-warning').style.display=
+      (!getRentcastKey()&&chkRentcast.checked)?'':'none';
+  }
+  updatePanels();
+
+  // Helpers
+  function esc(s){if(s===null||s===undefined)return"";return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+  function fmtMoney(n){if(!n&&n!==0)return null;const v=Number(n);if(isNaN(v))return null;return"$"+v.toLocaleString('en-US');}
+  function fmtNum(n){if(!n&&n!==0)return null;const v=Number(n);if(isNaN(v))return null;return v.toLocaleString('en-US');}
+  function fmtPct(n){if(!n&&n!==0)return null;const v=parseFloat(n);if(isNaN(v))return null;return v.toFixed(1)+"%";}
+  function fmtDate(d){if(!d)return null;try{return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(e){return d;}}
+  function val(id){return document.getElementById(id).value.trim();}
+  function kv(label,value){
+    const empty=(value===null||value===undefined||value==="");
+    return`<div class="kv"><div class="kv-label">${esc(label)}</div><div class="kv-value${empty?' empty':''}">${empty?'&mdash; not on record':esc(value)}</div></div>`;
+  }
+  function sectionHeader(title,pillClass,pillLabel,extra){
+    return`<div class="section-header"><span class="section-title">${title}</span><span class="section-pill ${pillClass}">${pillLabel}</span>${extra||''}</div>`;
+  }
+  function setLoading(msg){resultArea.innerHTML=`<div class="state-block"><div class="spinner"></div><p>${esc(msg)}</p></div>`;}
+  function setError(msg){resultArea.innerHTML=`<div class="error-block">RECORD PULL FAILED<br><br>${esc(msg)}</div>`;}
+
+  // Read manual form values
+  function readCensusForm(){
+    return{
+      tract:      val('c-tract'),
+      tractName:  val('c-tractname'),
+      population: val('c-population')||null,
+      totalUnits: val('c-units')||null,
+      medianIncome:    val('c-income')||null,
+      medianHomeValue: val('c-homevalue')||null,
+      pctOwner:  val('c-owner')||null,
+      pctRenter: val('c-renter')||null,
+      pctVacant: val('c-vacant')||null,
+    };
+  }
+  function readHudForm(){
+    return{
+      areaName:  val('h-area'),
+      year:      val('h-year')||'2025',
+      efficiency:val('h-studio')||null,
+      oneBed:    val('h-1br')||null,
+      twoBed:    val('h-2br')||null,
+      threeBed:  val('h-3br')||null,
+      fourBed:   val('h-4br')||null,
+    };
+  }
+  function censusHasData(c){return c.tract||c.population||c.medianIncome||c.medianHomeValue;}
+  function hudHasData(h){return h.areaName||h.oneBed||h.twoBed||h.threeBed;}
+
+  // Census API fetch — tries auto-lookup, pre-fills form if successful
+  async function tryFetchCensus(address, lat, lon){
+    try{
+      let geo = null;
+
+      // Strategy 1: structured address with confirmed working params (benchmark=4&vintage=4)
+      const parts = address.match(/^(.+?),\s*(.+?),\s*([A-Z]{2})\s*(\d{5})?$/i);
+      if(parts){
+        const [,street,city,state,zip] = parts;
+        let url = "https://geocoding.geo.census.gov/geocoder/geographies/address?" +
+          "street="+encodeURIComponent(street.trim())+
+          "&city="+encodeURIComponent(city.trim())+
+          "&state="+encodeURIComponent(state.trim())+
+          (zip?"&zip="+encodeURIComponent(zip.trim()):"")+
+          "&benchmark=4&vintage=4&layers=Census+Tracts&format=json";
+        const r = await fetch(url);
+        if(r.ok){
+          const d = await r.json();
+          geo = d?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];
+        }
+      }
+
+      // Strategy 2: one-line address with confirmed working params
+      if(!geo){
+        const r2 = await fetch(
+          "https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address="+
+          encodeURIComponent(address)+"&benchmark=4&vintage=4&layers=Census+Tracts&format=json");
+        if(r2.ok){
+          const d2 = await r2.json();
+          geo = d2?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];
+        }
+      }
+
+      // Strategy 3: lat/lon coordinates (most reliable when available)
+      if(!geo && lat && lon){
+        const r3 = await fetch(
+          "https://geocoding.geo.census.gov/geocoder/geographies/coordinates?"+
+          "x="+lon+"&y="+lat+"&benchmark=4&vintage=4&layers=Census+Tracts&format=json");
+        if(r3.ok){
+          const d3 = await r3.json();
+          geo = d3?.result?.geographies?.["Census Tracts"]?.[0];
+        }
+      }
+
+      if(!geo) return null;
+
+      const state  = geo.STATE;
+      const county = geo.COUNTY;
+      const tract  = geo.TRACT;
+      const tractName = geo.NAME || "";
+
+      // ACS 5-Year data for this tract
+      const dpVars = "DP03_0062E,DP04_0089E,DP04_0046PE,DP04_0047PE,DP04_0003PE,DP04_0001E";
+      const [dpRes, popRes] = await Promise.all([
+        fetch(`https://api.census.gov/data/2023/acs/acs5/profile?get=NAME,${dpVars}&for=tract:${tract}&in=state:${state}+county:${county}`),
+        fetch(`https://api.census.gov/data/2023/acs/acs5?get=NAME,B01003_001E&for=tract:${tract}&in=state:${state}+county:${county}`)
+      ]);
+      if(!dpRes.ok) return null;
+      const dpJson = await dpRes.json();
+      if(!dpJson||dpJson.length<2) return null;
+      const dpMap = {};
+      dpJson[0].forEach((h,i)=>dpMap[h]=dpJson[1][i]);
+
+      let population = null;
+      if(popRes.ok){
+        const pj = await popRes.json();
+        if(pj&&pj.length>=2){ const pm={}; pj[0].forEach((h,i)=>pm[h]=pj[1][i]); population=pm["B01003_001E"]; }
+      }
+
+      return {
+        tract: tract.replace(/^0+/,''), // trim leading zeros for display
+        tractName, state, county,
+        population,
+        totalUnits:     dpMap["DP04_0001E"],
+        medianIncome:   dpMap["DP03_0062E"],
+        medianHomeValue:dpMap["DP04_0089E"],
+        pctOwner:       dpMap["DP04_0046PE"],
+        pctRenter:      dpMap["DP04_0047PE"],
+        pctVacant:      dpMap["DP04_0003PE"],
+      };
+    }catch(e){ return null; }
+  }
+
+  // HUD API fetch — tries auto-lookup with token if available
+  async function tryFetchHUD(state, county){
+    try{
+      const token = (window.HUD_API_TOKEN||"").trim();
+      if(!token) return null;
+
+      const stateAbbrMap = {
+        "01":"AL","02":"AK","04":"AZ","05":"AR","06":"CA","08":"CO","09":"CT","10":"DE",
+        "11":"DC","12":"FL","13":"GA","15":"HI","16":"ID","17":"IL","18":"IN","19":"IA",
+        "20":"KS","21":"KY","22":"LA","23":"ME","24":"MD","25":"MA","26":"MI","27":"MN",
+        "28":"MS","29":"MO","30":"MT","31":"NE","32":"NV","33":"NH","34":"NJ","35":"NM",
+        "36":"NY","37":"NC","38":"ND","39":"OH","40":"OK","41":"OR","42":"PA","44":"RI",
+        "45":"SC","46":"SD","47":"TN","48":"TX","49":"UT","50":"VT","51":"VA","53":"WA",
+        "54":"WV","55":"WI","56":"WY"
+      };
+      const stateCode = stateAbbrMap[state];
+      if(!stateCode) return null;
+
+      const headers = {"Authorization":"Bearer "+token,"Accept":"application/json"};
+      const listRes = await fetch(`https://www.huduser.gov/hudapi/public/fmr/listCounties/${stateCode}`,{headers});
+      if(!listRes.ok) return null;
+      const listData = await listRes.json();
+      const counties = listData?.data||[];
+      const hudFips  = state+county+"99999";
+      let hudEntity  = counties.find(c=>c.fips_code===hudFips) ||
+                       counties.find(c=>c.fips_code?.startsWith(state+county));
+      if(!hudEntity) return null;
+
+      const fmrRes = await fetch(`https://www.huduser.gov/hudapi/public/fmr/data/${hudEntity.fips_code}`,{headers});
+      if(!fmrRes.ok) return null;
+      const fmrData = await fmrRes.json();
+      const d = fmrData?.data;
+      if(!d) return null;
+      const basic = Array.isArray(d.basicdata)
+        ? d.basicdata.find(b=>b.zip_code==="MSA level")||d.basicdata[0]
+        : d.basicdata;
+
+      return {
+        areaName:  d.metro_name||d.county_name||hudEntity.county_name||"This Area",
+        year:      basic?.year||d.year||"2025",
+        efficiency:basic?.["Efficiency"],
+        oneBed:    basic?.["One-Bedroom"],
+        twoBed:    basic?.["Two-Bedroom"],
+        threeBed:  basic?.["Three-Bedroom"],
+        fourBed:   basic?.["Four-Bedroom"],
+      };
+    }catch(e){ return null; }
+  }
+
+  // Pre-fill Census form with API data
+  function prefillCensusForm(data){
+    if(!data) return;
+    if(data.tract)     document.getElementById('c-tract').value     = data.tract;
+    if(data.tractName) document.getElementById('c-tractname').value = data.tractName;
+    if(data.population)     document.getElementById('c-population').value = data.population;
+    if(data.totalUnits)     document.getElementById('c-units').value      = data.totalUnits;
+    if(data.medianIncome)   document.getElementById('c-income').value     = data.medianIncome;
+    if(data.medianHomeValue)document.getElementById('c-homevalue').value  = data.medianHomeValue;
+    if(data.pctOwner)  document.getElementById('c-owner').value  = parseFloat(data.pctOwner).toFixed(1);
+    if(data.pctRenter) document.getElementById('c-renter').value = parseFloat(data.pctRenter).toFixed(1);
+    if(data.pctVacant) document.getElementById('c-vacant').value = parseFloat(data.pctVacant).toFixed(1);
+  }
+
+  // Pre-fill HUD form with API data
+  function prefillHudForm(data){
+    if(!data) return;
+    if(data.areaName)  document.getElementById('h-area').value   = data.areaName;
+    if(data.year)      document.getElementById('h-year').value   = data.year;
+    if(data.efficiency)document.getElementById('h-studio').value = data.efficiency;
+    if(data.oneBed)    document.getElementById('h-1br').value    = data.oneBed;
+    if(data.twoBed)    document.getElementById('h-2br').value    = data.twoBed;
+    if(data.threeBed)  document.getElementById('h-3br').value    = data.threeBed;
+    if(data.fourBed)   document.getElementById('h-4br').value    = data.fourBed;
+  }
+
+  // RentCast fetchers
+  async function fetchProperty(address){
+    const res=await fetch("https://api.rentcast.io/v1/properties?address="+encodeURIComponent(address),
+      {headers:{"X-Api-Key":getRentcastKey(),"Accept":"application/json"}});
+    if(!res.ok){let msg=res.status+" "+res.statusText;try{const b=await res.json();if(b&&b.message)msg=b.message;}catch(e){}throw new Error("RentCast: "+msg);}
+    const d=await res.json();return Array.isArray(d)?d[0]:d;
+  }
+  async function fetchAVM(address){
+    const res=await fetch("https://api.rentcast.io/v1/avm/value?address="+encodeURIComponent(address),
+      {headers:{"X-Api-Key":getRentcastKey(),"Accept":"application/json"}});
+    return res.ok?res.json():null;
+  }
+
+  // Render helpers
+  function renderTaxTable(taxAssessments,propertyTaxes){
+    const years=new Set();
+    if(taxAssessments)Object.keys(taxAssessments).forEach(y=>years.add(y));
+    if(propertyTaxes)Object.keys(propertyTaxes).forEach(y=>years.add(y));
+    const sorted=Array.from(years).sort().reverse();
+    if(!sorted.length)return`<p class="kv-value empty">No tax assessment history on record.</p>`;
+    const rows=sorted.map(y=>{
+      const a=taxAssessments?.[y],t=propertyTaxes?.[y];
+      return`<tr><td>${esc(y)}</td><td class="num">${a?.land!=null?fmtMoney(a.land):'&mdash;'}</td><td class="num">${a?.improvements!=null?fmtMoney(a.improvements):'&mdash;'}</td><td class="num">${a?.value!=null?fmtMoney(a.value):'&mdash;'}</td><td class="num">${t?.total!=null?fmtMoney(t.total):'&mdash;'}</td></tr>`;
+    }).join("");
+    return`<table class="ledger"><thead><tr><th>Year</th><th class="num">Land</th><th class="num">Improvements</th><th class="num">Total Assessed</th><th class="num">Tax Billed</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  function renderSaleHistory(history){
+    if(!history||!Object.keys(history).length)return`<p class="kv-value empty">No recorded sale transactions on file.</p>`;
+    const entries=Object.values(history).sort((a,b)=>new Date(b.date)-new Date(a.date));
+    const rows=entries.map(e=>`<tr><td>${esc(fmtDate(e.date))}</td><td>${esc(e.event)}</td><td class="num">${e.price!=null?fmtMoney(e.price):'&mdash;'}</td></tr>`).join("");
+    return`<table class="ledger"><thead><tr><th>Date</th><th>Event</th><th class="num">Price</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+  function renderComparables(avm){
+    if(!avm?.comparables?.length)return`<p class="kv-value empty">No comparable properties returned.</p>`;
+    const valueLine=avm.price!=null?`<div class="kv-grid" style="margin-bottom:18px;">${kv("AVM Estimate",fmtMoney(avm.price))}${kv("Range Low",fmtMoney(avm.priceRangeLow))}${kv("Range High",fmtMoney(avm.priceRangeHigh))}</div>`:"";
+    const cards=avm.comparables.slice().sort((a,b)=>(b.correlation||0)-(a.correlation||0)).slice(0,8).map(c=>`
+      <div class="comp-card">
+        <div class="comp-top"><div class="comp-addr">${esc(c.formattedAddress||c.addressLine1||'Unlisted')}</div><div class="comp-price">${c.price!=null?fmtMoney(c.price):'&mdash;'}</div></div>
+        <div class="comp-detail">${c.bedrooms!=null?c.bedrooms+' bd':'&mdash;'} &middot; ${c.bathrooms!=null?c.bathrooms+' ba':'&mdash;'} &middot; ${c.squareFootage!=null?fmtNum(c.squareFootage)+' sf':'&mdash;'} &middot; ${c.yearBuilt!=null?'built '+c.yearBuilt:'&mdash;'} &middot; ${c.distance!=null?c.distance.toFixed(2)+' mi':'&mdash;'}</div>
+        ${c.correlation!=null?`<div class="comp-corr">${(c.correlation*100).toFixed(1)}% similarity</div>`:''}
+      </div>`).join("");
+    return valueLine+cards;
+  }
+  function renderCensusSection(c){
+    if(!c||!censusHasData(c))return`<p class="kv-value empty">No Census data entered. Fill in the Census Bureau form above before pulling the record.</p>`;
+    return`
+      <div class="source-info-bar census">${c.tractName?esc(c.tractName)+' &nbsp;&middot;&nbsp; ':''} ${c.tract?'Tract '+esc(c.tract)+' &nbsp;&middot;&nbsp; ':''} ACS 5-Year Estimates 2019&ndash;2023</div>
+      <div class="kv-grid">
+        ${kv("Tract Population",fmtNum(c.population))}
+        ${kv("Total Housing Units",fmtNum(c.totalUnits))}
+        ${kv("Median Household Income",fmtMoney(c.medianIncome))}
+        ${kv("Median Home Value",fmtMoney(c.medianHomeValue))}
+        ${kv("Owner-Occupied",fmtPct(c.pctOwner))}
+        ${kv("Renter-Occupied",fmtPct(c.pctRenter))}
+        ${kv("Vacant Units",fmtPct(c.pctVacant))}
+      </div>`;
+  }
+  function renderHudSection(h){
+    if(!h||!hudHasData(h))return`<p class="kv-value empty">No HUD data entered. Fill in the HUD form above before pulling the record.</p>`;
+    return`
+      <div class="source-info-bar hud">${esc(h.areaName||'This Area')} &nbsp;&middot;&nbsp; HUD Fair Market Rents FY${esc(String(h.year||'2025'))} &nbsp;&middot;&nbsp; Section 8 / Housing Choice Voucher reference</div>
+      <div class="hud-rent-grid">
+        <div class="hud-rent-cell"><div class="br">Studio</div><div class="amt">${h.efficiency?fmtMoney(h.efficiency):'&mdash;'}</div></div>
+        <div class="hud-rent-cell"><div class="br">1 BR</div><div class="amt">${h.oneBed?fmtMoney(h.oneBed):'&mdash;'}</div></div>
+        <div class="hud-rent-cell"><div class="br">2 BR</div><div class="amt">${h.twoBed?fmtMoney(h.twoBed):'&mdash;'}</div></div>
+        <div class="hud-rent-cell"><div class="br">3 BR</div><div class="amt">${h.threeBed?fmtMoney(h.threeBed):'&mdash;'}</div></div>
+        <div class="hud-rent-cell"><div class="br">4 BR</div><div class="amt">${h.fourBed?fmtMoney(h.fourBed):'&mdash;'}</div></div>
+      </div>`;
+  }
+
+  // Main render
+  function renderDossier(prop,avm,census,hud,usedSources,rawAddress){
+    const f=prop?.features||{};
+    const owner=prop?.owner||{};
+    const addr=prop?.formattedAddress||[prop?.addressLine1,prop?.city,prop?.state,prop?.zipCode].filter(Boolean).join(", ")||rawAddress||"Unknown Address";
+    const stampId=prop?.assessorID||prop?.id||"UNFILED";
+    const sourceNotes=[];
+    if(usedSources.rentcast)sourceNotes.push("RentCast Property Data API");
+    if(usedSources.census)sourceNotes.push("U.S. Census Bureau ACS 5-Year Estimates (2019–2023) — manually entered");
+    if(usedSources.hud)sourceNotes.push("HUD Fair Market Rents — manually entered");
+
+    resultArea.innerHTML=`
+    <div class="dossier">
+      <div class="stamp"><strong>PARCEL</strong>${esc(stampId)}</div>
+      <div class="dossier-head">
+        <div class="dossier-eyebrow">Subject Property Dossier</div>
+        <div class="dossier-address">${esc(addr)}</div>
+        <div class="dossier-subline">${prop?.county?esc(prop.county)+' County':''}${prop?.county&&prop?.zoning?' &middot; ':''}${prop?.zoning?'Zoning: '+esc(prop.zoning):''}</div>
+      </div>
+
+      ${usedSources.rentcast&&prop?`
+      <div class="section">
+        ${sectionHeader("Structural Characteristics","pill-rentcast","RentCast")}
+        <div class="kv-grid">
+          ${kv("Property Type",prop.propertyType)}${kv("Bedrooms",prop.bedrooms)}${kv("Bathrooms",prop.bathrooms)}
+          ${kv("Living Area",prop.squareFootage!=null?fmtNum(prop.squareFootage)+" sf":null)}
+          ${kv("Lot Size",prop.lotSize!=null?fmtNum(prop.lotSize)+" sf":null)}
+          ${kv("Year Built",prop.yearBuilt)}${kv("Stories",f.floorCount)}${kv("Architecture",f.architectureType)}
+          ${kv("Foundation",f.foundationType)}${kv("Exterior",f.exteriorType)}${kv("Roof",f.roofType)}
+          ${kv("Heating",f.heating?f.heatingType||"Yes":(f.heating===false?"None on record":null))}
+          ${kv("Cooling",f.cooling?f.coolingType||"Yes":(f.cooling===false?"None on record":null))}
+          ${kv("Garage",f.garage?(f.garageSpaces?f.garageSpaces+" spaces · "+(f.garageType||""):f.garageType||"Yes"):(f.garage===false?"None on record":null))}
+          ${kv("Fireplace",f.fireplace?f.fireplaceType||"Yes":(f.fireplace===false?"None on record":null))}
+          ${kv("Pool",f.pool?f.poolType||"Yes":(f.pool===false?"None on record":null))}
+          ${kv("View",f.viewType)}${kv("HOA Fee (Monthly)",prop.hoa?.fee!=null?fmtMoney(prop.hoa.fee):null)}
+        </div>
+      </div>
+      <div class="section">
+        ${sectionHeader("Legal &amp; Parcel Record","pill-rentcast","RentCast")}
+        <div class="kv-grid">
+          ${kv("Assessor ID / APN",prop.assessorID)}${kv("Legal Description",prop.legalDescription)}
+          ${kv("Subdivision",prop.subdivision)}${kv("Zoning Code",prop.zoning)}${kv("County",prop.county)}
+          ${kv("Lat / Long",(prop.latitude&&prop.longitude)?prop.latitude.toFixed(5)+", "+prop.longitude.toFixed(5):null)}
+        </div>
+      </div>
+      <div class="section">
+        ${sectionHeader("Tax Assessment History","pill-rentcast","RentCast")}
+        ${renderTaxTable(prop.taxAssessments,prop.propertyTaxes)}
+      </div>
+      <div class="section">
+        ${sectionHeader("Sale / Deed History","pill-rentcast","RentCast")}
+        ${renderSaleHistory(prop.history)}
+      </div>
+      <div class="section">
+        ${sectionHeader("Owner of Record","pill-rentcast","RentCast")}
+        <div class="owner-name">${esc((owner.names&&owner.names.join(", "))||"Not on record")}</div>
+        <div class="owner-meta">${esc(owner.type||"")}${owner.mailingAddress?.formattedAddress?" &middot; Mailing: "+esc(owner.mailingAddress.formattedAddress):""}${prop.ownerOccupied!==undefined?" &middot; "+(prop.ownerOccupied?"Owner-occupied":"Not owner-occupied"):""}</div>
+      </div>
+      <div class="section">
+        ${sectionHeader("Comparable Properties","pill-rentcast","RentCast",`<span class="section-count">${avm?.comparables?"("+avm.comparables.length+" returned)":""}</span>`)}
+        ${renderComparables(avm)}
+      </div>`:""}
+
+      ${usedSources.census?`
+      <div class="section">
+        ${sectionHeader("Neighborhood Context","pill-census","Census Bureau")}
+        ${renderCensusSection(census)}
+      </div>`:""}
+
+      ${usedSources.hud?`
+      <div class="section">
+        ${sectionHeader("Fair Market Rents","pill-hud","HUD")}
+        ${renderHudSection(hud)}
+      </div>`:""}
+
+      <div class="dossier-actions">
+        <button class="action-btn" id="printBtn">Print / Save PDF</button>
+        <button class="action-btn" id="copyBtn">Copy Summary</button>
+      </div>
+      <div class="source-note">
+        Sources: ${esc(sourceNotes.join("; "))}.<br>
+        Compiled ${esc(new Date().toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}))}.<br>
+        This dossier presents factual public-record and listing data only. It contains no opinion of value, condition rating, or comparable selection, and is not an appraisal report.
+      </div>
+    </div>`;
+
+    document.getElementById('printBtn').addEventListener('click',()=>window.print());
+    document.getElementById('copyBtn').addEventListener('click',()=>{
+      const text=`SUBJECT PROPERTY DOSSIER\n${addr}\n\nType: ${prop?.propertyType||'—'}\nBeds/Baths: ${prop?.bedrooms??'—'}/${prop?.bathrooms??'—'}\nLiving Area: ${prop?.squareFootage??'—'} sf\nLot: ${prop?.lotSize??'—'} sf\nBuilt: ${prop?.yearBuilt??'—'}\nAPN: ${prop?.assessorID||'—'}\nZoning: ${prop?.zoning||'—'}\nCounty: ${prop?.county||'—'}`;
+      navigator.clipboard.writeText(text).then(()=>{
+        const b=document.getElementById('copyBtn');
+        b.textContent="Copied";setTimeout(()=>b.textContent="Copy Summary",1500);
+      });
+    });
+  }
+
+  // Run search
+  async function runSearch(){
+    const address=addressInput.value.trim();
+    if(!address){addressInput.focus();return;}
+    const useRentcast=chkRentcast.checked;
+    const useCensus=chkCensus.checked;
+    const useHud=chkHud.checked;
+    if(!useRentcast&&!useCensus&&!useHud){setError("Please select at least one data source.");return;}
+    if(useRentcast&&!getRentcastKey()){setError("RentCast is selected but no API key is set in config.js.");return;}
+
+    searchBtn.disabled=true;
+    setLoading("Pulling property record…");
+
+    try{
+      // Step 1: RentCast
+      let prop=null,avm=null;
+      if(useRentcast){
+        [prop,avm]=await Promise.all([
+          fetchProperty(address),
+          fetchAVM(address).catch(()=>null)
+        ]);
+        if(!prop){setError("No property record found. Check spelling or try without a unit number.");return;}
+      }
+
+      // Step 2: Try Census + HUD APIs automatically (works on https://, fails silently on file://)
+      if(useCensus||useHud){
+        setLoading("Attempting automatic data lookup…");
+        const lat = prop?.latitude||null;
+        const lon = prop?.longitude||null;
+
+        const censusData = useCensus ? await tryFetchCensus(address, lat, lon) : null;
+        if(censusData){
+          prefillCensusForm(censusData);
+        }
+
+        // HUD needs Census FIPS codes
+        if(useHud && censusData?.state && censusData?.county){
+          const hudData = await tryFetchHUD(censusData.state, censusData.county);
+          if(hudData) prefillHudForm(hudData);
+        }
+      }
+
+      // Step 3: Read forms (auto-filled if API worked, manually filled if not)
+      const census = useCensus ? readCensusForm() : null;
+      const hud    = useHud    ? readHudForm()    : null;
+
+      renderDossier(prop,avm,census,hud,{rentcast:useRentcast,census:useCensus,hud:useHud},address);
+    }catch(err){
+      setError(err.message||"Unknown error.");
+    }finally{
+      searchBtn.disabled=false;
+    }
+  }
+
+  searchBtn.addEventListener('click',runSearch);
+  addressInput.addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});
+})();
+</script>
+</body>
+</html>
