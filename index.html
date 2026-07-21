@@ -237,7 +237,7 @@ table.ledger td.num,table.ledger th.num{text-align:right;}
           "&city="+encodeURIComponent(city.trim())+
           "&state="+encodeURIComponent(state.trim())+
           (zip?"&zip="+encodeURIComponent(zip.trim()):"")+
-          "&benchmark=4&vintage=4&layers=Census+Tracts&format=json";
+          "&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts&format=json";
         const r=await fetch(url);
         if(r.ok){const d=await r.json();geo=d?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];}
       }
@@ -245,14 +245,14 @@ table.ledger td.num,table.ledger th.num{text-align:right;}
       // Strategy 2: one-line address
       if(!geo){
         const r2=await fetch("https://geocoding.geo.census.gov/geocoder/geographies/onelineaddress?address="+
-          encodeURIComponent(address)+"&benchmark=4&vintage=4&layers=Census+Tracts&format=json");
+          encodeURIComponent(address)+"&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts&format=json");
         if(r2.ok){const d2=await r2.json();geo=d2?.result?.addressMatches?.[0]?.geographies?.["Census Tracts"]?.[0];}
       }
 
       // Strategy 3: lat/lon coordinates from RentCast
       if(!geo&&lat&&lon){
         const r3=await fetch("https://geocoding.geo.census.gov/geocoder/geographies/coordinates?"+
-          "x="+lon+"&y="+lat+"&benchmark=4&vintage=4&layers=Census+Tracts&format=json");
+          "x="+lon+"&y="+lat+"&benchmark=Public_AR_Current&vintage=Current_Current&layers=Census+Tracts&format=json");
         if(r3.ok){const d3=await r3.json();geo=d3?.result?.geographies?.["Census Tracts"]?.[0];}
       }
 
